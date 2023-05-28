@@ -15,8 +15,8 @@ services:
     image: dpage/pgadmin4
     container_name: pgadmin4
     environment:
-      - PGADMIN_DEFAULT_PASSWORD=admin
       - PGADMIN_DEFAULT_EMAIL=email@domail.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
     volumes:
       - pgadmin4-data:/var/lib/pgadmin
 volumes:

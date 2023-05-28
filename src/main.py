@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict
 
 import psycopg2
@@ -9,6 +9,7 @@ user = "postgres"
 password = "postgres"
 host = "localhost"
 port = "5432"
+table_name = "Metrix"
 
 
 class Path:
@@ -81,26 +82,14 @@ class WeekdayIntensity:
 class Sample:
     def __init__(
             self,
-            id: int,
+            id_: int,
             path: Path,
             seats_number: int,
-            time_request: datetime,
-            plan: str,
-            landing: datetime,
-            disembark: datetime,
-            waiting: timedelta,
-            travel: timedelta,
-            infobus: int):
-        self.infobus = infobus
-        self.travel = travel
-        self.waiting = waiting
-        self.disembark = disembark
-        self.landing = landing
-        self.plan = plan
+            time_request):
         self.time_request: datetime = time_request
         self.seats_number = seats_number
         self.path = path
-        self.id = id
+        self.id = id_
 
     def __str__(self):
         return f"Sample({self.id} {self.path.origin} -> {self.path.destination} {self.time_request})"
@@ -120,7 +109,7 @@ def read_samples() -> [Sample]:
         cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
         # Выполнение SQL-запроса
-        cursor.execute("SELECT * FROM \"ARHMetrix\"")
+        cursor.execute(f"SELECT * FROM \"{table_name}\"")
 
         samples: List[Sample] = []
         rows = cursor.fetchall()
@@ -147,12 +136,6 @@ def map_sample(row) -> Sample:
         ),
         row["SeatsNumber"],
         row["TimeRequest"],
-        row["infobus"],
-        row["Landing"],
-        row["Disembark"],
-        row["Waiting"],
-        row["Travel"],
-        row["plan"],
     )
     return next_sample
 
@@ -214,6 +197,7 @@ def main() -> None:
     print(hour_intensity)
     weekday_intensity: List[WeekdayIntensity] = analyze_weekday_intensity(samples)
     print(weekday_intensity)
+
 
 if __name__ == "__main__":
     main()
