@@ -29,7 +29,7 @@ class PathPiece:
         self.origin = origin
 
     def __str__(self):
-        return f'PathPiece({self.origin} -> {self.origin + 1})'
+        return f'{self.origin} -> {self.origin + 1}'
 
     def __repr__(self):
         str(self)
@@ -49,7 +49,7 @@ class PathPieceIntensity:
         self.intensity = intensity
 
     def __str__(self):
-        return f'{str(self.path_piece)} <=> {self.intensity}'
+        return f'PathPieceIntensity({str(self.path_piece)} <=> {self.intensity})'
 
     def __repr__(self):
         return str(self)
@@ -61,7 +61,19 @@ class HourIntensity:
         self.intensity = intensity
 
     def __str__(self):
-        return f'Hour({str(self.hour)}) <=> {self.intensity}'
+        return f'HourIntensity({str(self.hour)} <=> {self.intensity})'
+
+    def __repr__(self):
+        return str(self)
+
+
+class PathProbability:
+    def __init__(self, path: PathPiece, probability: float):
+        self.path_piece = path
+        self.probability = probability
+
+    def __str__(self):
+        return f'PathProbability({str(self.path_piece)} <=> {self.probability})'
 
     def __repr__(self):
         return str(self)
@@ -189,6 +201,12 @@ def analyze_weekday_intensity(samples: List[Sample]) -> List[WeekdayIntensity]:
     return list(sorted(hour_intensity, key=lambda x: x.intensity, reverse=True))
 
 
+def analyze_math_expectation(samples: List[Sample]) -> List[PathProbability]:
+    path_intensity: List[PathPieceIntensity] = analyze_path_intensity(samples)
+    count = sum([x.intensity for x in path_intensity])
+    return [PathProbability(x.path_piece, x.intensity / count) for x in path_intensity]
+
+
 def main() -> None:
     samples: List[Sample] = read_samples()
     path_piece_intensity: List[PathPieceIntensity] = analyze_path_intensity(samples)
@@ -197,6 +215,8 @@ def main() -> None:
     print(hour_intensity)
     weekday_intensity: List[WeekdayIntensity] = analyze_weekday_intensity(samples)
     print(weekday_intensity)
+    hour_probability: List[PathProbability] = analyze_math_expectation(samples)
+    print(hour_probability)
 
 
 if __name__ == "__main__":
