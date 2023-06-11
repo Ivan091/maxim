@@ -1,8 +1,11 @@
 from datetime import datetime
-from typing import List, Dict
+from typing import List
 
+import matplotlib.pyplot as plt
+import numpy as np
 import psycopg2
 import psycopg2.extras
+import colorsys
 
 dbname = "maxim"
 user = "postgres"
@@ -152,71 +155,71 @@ def map_sample(row) -> Sample:
     return next_sample
 
 
-def analyze_path_intensity(samples: List[Sample]) -> List[PathPieceIntensity]:
-    paths = list(map(lambda x: x.path, samples))
-    path_pieces_intensity_dict: Dict[PathPiece, int] = {}
-    for path in paths:
-        path_piece = PathPiece(path.origin)
-        if path_piece in path_pieces_intensity_dict:
-            current_val = path_pieces_intensity_dict[path_piece]
-            path_pieces_intensity_dict[path_piece] = current_val + 1
-        else:
-            path_pieces_intensity_dict[path_piece] = 1
+def plot(x, y, path: str) -> None:
+    fig, ax = plt.subplots()
+    plt.xticks(np.arange(min(x), max(x) + 1, 1.0))
+    ax.plot(x, y, marker='o', linestyle='-')
+    plt.savefig(path)
+    plt.close(fig)
 
-    path_piece_intensity: List[PathPieceIntensity] = []
-    for (k) in path_pieces_intensity_dict.keys():
-        path_piece_intensity.append(PathPieceIntensity(k, path_pieces_intensity_dict[k]))
-    return list(sorted(path_piece_intensity, key=lambda x: x.intensity, reverse=True))
+def plot_many(x: [], y: [], labeles: [], path: str) -> None:
+    colors = np.linspace(0, 0.65, len(x))
 
-
-def analyze_hour_intensity(samples: List[Sample]) -> List[HourIntensity]:
-    hours = list(map(lambda x: x.time_request.hour, samples))
-    hour_intensity_dict: Dict[int, int] = {}
-    for hour in hours:
-        if hour in hour_intensity_dict:
-            current_val = hour_intensity_dict[hour]
-            hour_intensity_dict[hour] = current_val + 1
-        else:
-            hour_intensity_dict[hour] = 1
-
-    hour_intensity: List[HourIntensity] = []
-    for (k) in hour_intensity_dict.keys():
-        hour_intensity.append(HourIntensity(k, hour_intensity_dict[k]))
-    return list(sorted(hour_intensity, key=lambda x: x.intensity, reverse=True))
+    fig, ax = plt.subplots()
+    plt.xticks(np.arange(np.min(x), np.max(x) + 1, 1.0))
+    for x0, y0, l, c in zip(x, y, labeles, colors):
+        ax.plot(x0, y0, marker='o', linestyle='-', label=l, color=colorsys.hsv_to_rgb(c, 1, 0.7))
+    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", borderaxespad=0)
+    plt.savefig(path, bbox_inches="tight")
+    plt.close(fig)
 
 
-def analyze_weekday_intensity(samples: List[Sample]) -> List[WeekdayIntensity]:
-    days = list(map(lambda x: x.time_request.weekday(), samples))
-    weekday_intensity_dict: Dict[int, int] = {}
-    for day in days:
-        if day in weekday_intensity_dict:
-            current_val = weekday_intensity_dict[day]
-            weekday_intensity_dict[day] = current_val + 1
-        else:
-            weekday_intensity_dict[day] = 1
-
-    hour_intensity: List[WeekdayIntensity] = []
-    for (k) in weekday_intensity_dict.keys():
-        hour_intensity.append(WeekdayIntensity(k, weekday_intensity_dict[k]))
-    return list(sorted(hour_intensity, key=lambda x: x.intensity, reverse=True))
+def analyze_path_intensity(samples: List[Sample]) -> None:
+    origins = np.array([s.path.origin for s in samples])
+    x, y = np.unique(origins, return_counts=True)
+    plot(x, y, "../analyze_path_intensity")
 
 
-def analyze_math_expectation(samples: List[Sample]) -> List[PathProbability]:
-    path_intensity: List[PathPieceIntensity] = analyze_path_intensity(samples)
-    count = sum([x.intensity for x in path_intensity])
-    return [PathProbability(x.path_piece, x.intensity / count) for x in path_intensity]
+def analyze_hour_intensity(samples: List[Sample]) -> None:
+    hours = np.array([s.time_request.hour for s in samples])
+    x, y = np.unique(hours, return_counts=True)
+    plot(x, y, "../analyze_hour_intensity")
 
 
-def main() -> None:
+def analyze_weekday_intensity(samples: List[Sample]) -> None:
+    days = np.array([s.time_request.weekday() for s in samples])
+    x, y = np.unique(days, return_counts=True)
+    plot(x, y, "../analyze_weekday_intensity")
+
+
+def analyze_math_expectation(samples: List[Sample]) -> None:
+    hours = np.array([s.time_request.hour for s in samples])
+    hours, hours_count = np.unique(hours, return_counts=True)
+    print(hours)
+
+    xs = []
+    ys = []
+    ls = []
+    for i in range(len(hours)):
+        h = hours[i]
+
+        filtered = list(filter(lambda x: x.time_request.hour == h, samples))
+
+        origins = np.array([s.path.origin for s in filtered])
+        origins, origins_count = np.unique(origins, return_counts=True)
+        xs.append(origins)
+        ys.append(origins_count)
+        ls.append(f"hour {h}")
+
+    plot_many(xs, ys, ls, "../test")
+
+
+def main():
     samples: List[Sample] = read_samples()
-    path_piece_intensity: List[PathPieceIntensity] = analyze_path_intensity(samples)
-    print(path_piece_intensity)
-    hour_intensity: List[HourIntensity] = analyze_hour_intensity(samples)
-    print(hour_intensity)
-    weekday_intensity: List[WeekdayIntensity] = analyze_weekday_intensity(samples)
-    print(weekday_intensity)
-    hour_probability: List[PathProbability] = analyze_math_expectation(samples)
-    print(hour_probability)
+    analyze_path_intensity(samples)
+    analyze_hour_intensity(samples)
+    analyze_weekday_intensity(samples)
+    analyze_math_expectation(samples)
 
 
 if __name__ == "__main__":

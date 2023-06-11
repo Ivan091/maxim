@@ -21,7 +21,8 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
     install_requires=[
-        'psycopg2'
+        'psycopg2',
+        'matplotlib'
     ],
     entry_points={
         'console_scripts': [
